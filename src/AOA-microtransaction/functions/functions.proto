@@ -1,0 +1,30 @@
+
+syntax = "proto3";
+
+option go_package = "github.com/Aliobead234/AOAmicroservice/functions";
+package functions;
+
+service Echo {
+    rpc EchoStr(EchoData) returns (EchoData) {}
+    rpc EchoCounter(EchoData) returns (stream EchoData) {}
+    rpc ConcatEchos(stream EchoData) returns (stream EchoData) {}
+    rpc PermuteEcho(stream EchoData) returns (stream EchoData) {}
+}
+
+message EchoData {
+    string str = 1;
+}
+
+message TxRequest {
+    string user_id = 1;
+    double amount  = 2;
+}
+
+message TxResponse {
+    bool   success = 1;
+    string message = 2;
+}
+
+service Transaction {
+    rpc Process(TxRequest) returns (TxResponse);
+}

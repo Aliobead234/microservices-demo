@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v6.31.0
-// source: functions/functions.proto
+// source: functions.proto
 
 package functions
 
@@ -18,374 +18,248 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// EchoClient is the client API for Echo service.
+// AuthServiceClient is the client API for AuthService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type EchoClient interface {
-	EchoStr(ctx context.Context, in *EchoData, opts ...grpc.CallOption) (*EchoData, error)
-	EchoCounter(ctx context.Context, in *EchoData, opts ...grpc.CallOption) (Echo_EchoCounterClient, error)
-	ConcatEchos(ctx context.Context, opts ...grpc.CallOption) (Echo_ConcatEchosClient, error)
-	PermuteEcho(ctx context.Context, opts ...grpc.CallOption) (Echo_PermuteEchoClient, error)
+type AuthServiceClient interface {
+	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
+	RefreshToken(ctx context.Context, in *RefreshRequest, opts ...grpc.CallOption) (*RefreshResponse, error)
 }
 
-type echoClient struct {
+type authServiceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewEchoClient(cc grpc.ClientConnInterface) EchoClient {
-	return &echoClient{cc}
+func NewAuthServiceClient(cc grpc.ClientConnInterface) AuthServiceClient {
+	return &authServiceClient{cc}
 }
 
-func (c *echoClient) EchoStr(ctx context.Context, in *EchoData, opts ...grpc.CallOption) (*EchoData, error) {
-	out := new(EchoData)
-	err := c.cc.Invoke(ctx, "/functions.Echo/EchoStr", in, out, opts...)
+func (c *authServiceClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error) {
+	out := new(LoginResponse)
+	err := c.cc.Invoke(ctx, "/functions.AuthService/Login", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *echoClient) EchoCounter(ctx context.Context, in *EchoData, opts ...grpc.CallOption) (Echo_EchoCounterClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Echo_ServiceDesc.Streams[0], "/functions.Echo/EchoCounter", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &echoEchoCounterClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-type Echo_EchoCounterClient interface {
-	Recv() (*EchoData, error)
-	grpc.ClientStream
-}
-
-type echoEchoCounterClient struct {
-	grpc.ClientStream
-}
-
-func (x *echoEchoCounterClient) Recv() (*EchoData, error) {
-	m := new(EchoData)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (c *echoClient) ConcatEchos(ctx context.Context, opts ...grpc.CallOption) (Echo_ConcatEchosClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Echo_ServiceDesc.Streams[1], "/functions.Echo/ConcatEchos", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &echoConcatEchosClient{stream}
-	return x, nil
-}
-
-type Echo_ConcatEchosClient interface {
-	Send(*EchoData) error
-	Recv() (*EchoData, error)
-	grpc.ClientStream
-}
-
-type echoConcatEchosClient struct {
-	grpc.ClientStream
-}
-
-func (x *echoConcatEchosClient) Send(m *EchoData) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *echoConcatEchosClient) Recv() (*EchoData, error) {
-	m := new(EchoData)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (c *echoClient) PermuteEcho(ctx context.Context, opts ...grpc.CallOption) (Echo_PermuteEchoClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Echo_ServiceDesc.Streams[2], "/functions.Echo/PermuteEcho", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &echoPermuteEchoClient{stream}
-	return x, nil
-}
-
-type Echo_PermuteEchoClient interface {
-	Send(*EchoData) error
-	Recv() (*EchoData, error)
-	grpc.ClientStream
-}
-
-type echoPermuteEchoClient struct {
-	grpc.ClientStream
-}
-
-func (x *echoPermuteEchoClient) Send(m *EchoData) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *echoPermuteEchoClient) Recv() (*EchoData, error) {
-	m := new(EchoData)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-// EchoServer is the server API for Echo service.
-// All implementations must embed UnimplementedEchoServer
-// for forward compatibility
-type EchoServer interface {
-	EchoStr(context.Context, *EchoData) (*EchoData, error)
-	EchoCounter(*EchoData, Echo_EchoCounterServer) error
-	ConcatEchos(Echo_ConcatEchosServer) error
-	PermuteEcho(Echo_PermuteEchoServer) error
-	mustEmbedUnimplementedEchoServer()
-}
-
-// UnimplementedEchoServer must be embedded to have forward compatible implementations.
-type UnimplementedEchoServer struct {
-}
-
-func (UnimplementedEchoServer) EchoStr(context.Context, *EchoData) (*EchoData, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method EchoStr not implemented")
-}
-func (UnimplementedEchoServer) EchoCounter(*EchoData, Echo_EchoCounterServer) error {
-	return status.Errorf(codes.Unimplemented, "method EchoCounter not implemented")
-}
-func (UnimplementedEchoServer) ConcatEchos(Echo_ConcatEchosServer) error {
-	return status.Errorf(codes.Unimplemented, "method ConcatEchos not implemented")
-}
-func (UnimplementedEchoServer) PermuteEcho(Echo_PermuteEchoServer) error {
-	return status.Errorf(codes.Unimplemented, "method PermuteEcho not implemented")
-}
-func (UnimplementedEchoServer) mustEmbedUnimplementedEchoServer() {}
-
-// UnsafeEchoServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to EchoServer will
-// result in compilation errors.
-type UnsafeEchoServer interface {
-	mustEmbedUnimplementedEchoServer()
-}
-
-func RegisterEchoServer(s grpc.ServiceRegistrar, srv EchoServer) {
-	s.RegisterService(&Echo_ServiceDesc, srv)
-}
-
-func _Echo_EchoStr_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EchoData)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(EchoServer).EchoStr(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/functions.Echo/EchoStr",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(EchoServer).EchoStr(ctx, req.(*EchoData))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Echo_EchoCounter_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(EchoData)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(EchoServer).EchoCounter(m, &echoEchoCounterServer{stream})
-}
-
-type Echo_EchoCounterServer interface {
-	Send(*EchoData) error
-	grpc.ServerStream
-}
-
-type echoEchoCounterServer struct {
-	grpc.ServerStream
-}
-
-func (x *echoEchoCounterServer) Send(m *EchoData) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func _Echo_ConcatEchos_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(EchoServer).ConcatEchos(&echoConcatEchosServer{stream})
-}
-
-type Echo_ConcatEchosServer interface {
-	Send(*EchoData) error
-	Recv() (*EchoData, error)
-	grpc.ServerStream
-}
-
-type echoConcatEchosServer struct {
-	grpc.ServerStream
-}
-
-func (x *echoConcatEchosServer) Send(m *EchoData) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func (x *echoConcatEchosServer) Recv() (*EchoData, error) {
-	m := new(EchoData)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func _Echo_PermuteEcho_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(EchoServer).PermuteEcho(&echoPermuteEchoServer{stream})
-}
-
-type Echo_PermuteEchoServer interface {
-	Send(*EchoData) error
-	Recv() (*EchoData, error)
-	grpc.ServerStream
-}
-
-type echoPermuteEchoServer struct {
-	grpc.ServerStream
-}
-
-func (x *echoPermuteEchoServer) Send(m *EchoData) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func (x *echoPermuteEchoServer) Recv() (*EchoData, error) {
-	m := new(EchoData)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-// Echo_ServiceDesc is the grpc.ServiceDesc for Echo service.
-// It's only intended for direct use with grpc.RegisterService,
-// and not to be introspected or modified (even as a copy)
-var Echo_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "functions.Echo",
-	HandlerType: (*EchoServer)(nil),
-	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "EchoStr",
-			Handler:    _Echo_EchoStr_Handler,
-		},
-	},
-	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "EchoCounter",
-			Handler:       _Echo_EchoCounter_Handler,
-			ServerStreams: true,
-		},
-		{
-			StreamName:    "ConcatEchos",
-			Handler:       _Echo_ConcatEchos_Handler,
-			ServerStreams: true,
-			ClientStreams: true,
-		},
-		{
-			StreamName:    "PermuteEcho",
-			Handler:       _Echo_PermuteEcho_Handler,
-			ServerStreams: true,
-			ClientStreams: true,
-		},
-	},
-	Metadata: "functions/functions.proto",
-}
-
-// TransactionClient is the client API for Transaction service.
-//
-// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type TransactionClient interface {
-	Process(ctx context.Context, in *TxRequest, opts ...grpc.CallOption) (*TxResponse, error)
-}
-
-type transactionClient struct {
-	cc grpc.ClientConnInterface
-}
-
-func NewTransactionClient(cc grpc.ClientConnInterface) TransactionClient {
-	return &transactionClient{cc}
-}
-
-func (c *transactionClient) Process(ctx context.Context, in *TxRequest, opts ...grpc.CallOption) (*TxResponse, error) {
-	out := new(TxResponse)
-	err := c.cc.Invoke(ctx, "/functions.Transaction/Process", in, out, opts...)
+func (c *authServiceClient) RefreshToken(ctx context.Context, in *RefreshRequest, opts ...grpc.CallOption) (*RefreshResponse, error) {
+	out := new(RefreshResponse)
+	err := c.cc.Invoke(ctx, "/functions.AuthService/RefreshToken", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// TransactionServer is the server API for Transaction service.
-// All implementations must embed UnimplementedTransactionServer
+// AuthServiceServer is the server API for AuthService service.
+// All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility
-type TransactionServer interface {
-	Process(context.Context, *TxRequest) (*TxResponse, error)
-	mustEmbedUnimplementedTransactionServer()
+type AuthServiceServer interface {
+	Login(context.Context, *LoginRequest) (*LoginResponse, error)
+	RefreshToken(context.Context, *RefreshRequest) (*RefreshResponse, error)
+	mustEmbedUnimplementedAuthServiceServer()
 }
 
-// UnimplementedTransactionServer must be embedded to have forward compatible implementations.
-type UnimplementedTransactionServer struct {
+// UnimplementedAuthServiceServer must be embedded to have forward compatible implementations.
+type UnimplementedAuthServiceServer struct {
 }
 
-func (UnimplementedTransactionServer) Process(context.Context, *TxRequest) (*TxResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Process not implemented")
+func (UnimplementedAuthServiceServer) Login(context.Context, *LoginRequest) (*LoginResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
 }
-func (UnimplementedTransactionServer) mustEmbedUnimplementedTransactionServer() {}
+func (UnimplementedAuthServiceServer) RefreshToken(context.Context, *RefreshRequest) (*RefreshResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RefreshToken not implemented")
+}
+func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 
-// UnsafeTransactionServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to TransactionServer will
+// UnsafeAuthServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to AuthServiceServer will
 // result in compilation errors.
-type UnsafeTransactionServer interface {
-	mustEmbedUnimplementedTransactionServer()
+type UnsafeAuthServiceServer interface {
+	mustEmbedUnimplementedAuthServiceServer()
 }
 
-func RegisterTransactionServer(s grpc.ServiceRegistrar, srv TransactionServer) {
-	s.RegisterService(&Transaction_ServiceDesc, srv)
+func RegisterAuthServiceServer(s grpc.ServiceRegistrar, srv AuthServiceServer) {
+	s.RegisterService(&AuthService_ServiceDesc, srv)
 }
 
-func _Transaction_Process_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(TxRequest)
+func _AuthService_Login_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LoginRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(TransactionServer).Process(ctx, in)
+		return srv.(AuthServiceServer).Login(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/functions.Transaction/Process",
+		FullMethod: "/functions.AuthService/Login",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TransactionServer).Process(ctx, req.(*TxRequest))
+		return srv.(AuthServiceServer).Login(ctx, req.(*LoginRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// Transaction_ServiceDesc is the grpc.ServiceDesc for Transaction service.
+func _AuthService_RefreshToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RefreshRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).RefreshToken(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/functions.AuthService/RefreshToken",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).RefreshToken(ctx, req.(*RefreshRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var Transaction_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "functions.Transaction",
-	HandlerType: (*TransactionServer)(nil),
+var AuthService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "functions.AuthService",
+	HandlerType: (*AuthServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Process",
-			Handler:    _Transaction_Process_Handler,
+			MethodName: "Login",
+			Handler:    _AuthService_Login_Handler,
+		},
+		{
+			MethodName: "RefreshToken",
+			Handler:    _AuthService_RefreshToken_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "functions/functions.proto",
+	Metadata: "functions.proto",
+}
+
+// TransactionServiceClient is the client API for TransactionService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type TransactionServiceClient interface {
+	// В метаданных gRPC: "authorization: Bearer <access_jwt>"
+	ProcessTx(ctx context.Context, in *ProcessTxRequest, opts ...grpc.CallOption) (*ProcessTxResponse, error)
+	GetTxStatus(ctx context.Context, in *TxStatusRequest, opts ...grpc.CallOption) (*TxStatusResponse, error)
+}
+
+type transactionServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewTransactionServiceClient(cc grpc.ClientConnInterface) TransactionServiceClient {
+	return &transactionServiceClient{cc}
+}
+
+func (c *transactionServiceClient) ProcessTx(ctx context.Context, in *ProcessTxRequest, opts ...grpc.CallOption) (*ProcessTxResponse, error) {
+	out := new(ProcessTxResponse)
+	err := c.cc.Invoke(ctx, "/functions.TransactionService/ProcessTx", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *transactionServiceClient) GetTxStatus(ctx context.Context, in *TxStatusRequest, opts ...grpc.CallOption) (*TxStatusResponse, error) {
+	out := new(TxStatusResponse)
+	err := c.cc.Invoke(ctx, "/functions.TransactionService/GetTxStatus", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// TransactionServiceServer is the server API for TransactionService service.
+// All implementations must embed UnimplementedTransactionServiceServer
+// for forward compatibility
+type TransactionServiceServer interface {
+	// В метаданных gRPC: "authorization: Bearer <access_jwt>"
+	ProcessTx(context.Context, *ProcessTxRequest) (*ProcessTxResponse, error)
+	GetTxStatus(context.Context, *TxStatusRequest) (*TxStatusResponse, error)
+	mustEmbedUnimplementedTransactionServiceServer()
+}
+
+// UnimplementedTransactionServiceServer must be embedded to have forward compatible implementations.
+type UnimplementedTransactionServiceServer struct {
+}
+
+func (UnimplementedTransactionServiceServer) ProcessTx(context.Context, *ProcessTxRequest) (*ProcessTxResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ProcessTx not implemented")
+}
+func (UnimplementedTransactionServiceServer) GetTxStatus(context.Context, *TxStatusRequest) (*TxStatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTxStatus not implemented")
+}
+func (UnimplementedTransactionServiceServer) mustEmbedUnimplementedTransactionServiceServer() {}
+
+// UnsafeTransactionServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to TransactionServiceServer will
+// result in compilation errors.
+type UnsafeTransactionServiceServer interface {
+	mustEmbedUnimplementedTransactionServiceServer()
+}
+
+func RegisterTransactionServiceServer(s grpc.ServiceRegistrar, srv TransactionServiceServer) {
+	s.RegisterService(&TransactionService_ServiceDesc, srv)
+}
+
+func _TransactionService_ProcessTx_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProcessTxRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TransactionServiceServer).ProcessTx(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/functions.TransactionService/ProcessTx",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TransactionServiceServer).ProcessTx(ctx, req.(*ProcessTxRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _TransactionService_GetTxStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TxStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TransactionServiceServer).GetTxStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/functions.TransactionService/GetTxStatus",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TransactionServiceServer).GetTxStatus(ctx, req.(*TxStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// TransactionService_ServiceDesc is the grpc.ServiceDesc for TransactionService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var TransactionService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "functions.TransactionService",
+	HandlerType: (*TransactionServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ProcessTx",
+			Handler:    _TransactionService_ProcessTx_Handler,
+		},
+		{
+			MethodName: "GetTxStatus",
+			Handler:    _TransactionService_GetTxStatus_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "functions.proto",
 }

@@ -1,30 +1,79 @@
-
 syntax = "proto3";
 
-option go_package = "github.com/Aliobead234/AOAmicroservice/functions";
 package functions;
 
-service Echo {
-    rpc EchoStr(EchoData) returns (EchoData) {}
-    rpc EchoCounter(EchoData) returns (stream EchoData) {}
-    rpc ConcatEchos(stream EchoData) returns (stream EchoData) {}
-    rpc PermuteEcho(stream EchoData) returns (stream EchoData) {}
+option go_package = "github.com/Aliobead234/AOAmicroservice/src/AOA-microtransaction/functions;functions";
+
+// ---------------------------------------------------------------------
+// 1. AUTHENTICATION SERVICE (Login + RefreshToken) – при необходимости.
+//    Если в вашем сервисе уже есть своя аутентификация, можно оставить
+//    только TransactionService.
+// ---------------------------------------------------------------------
+service AuthService {
+  rpc Login(LoginRequest) returns (LoginResponse) {}
+  rpc RefreshToken(RefreshRequest) returns (RefreshResponse) {}
 }
 
-message EchoData {
-    string str = 1;
+message LoginRequest {
+  string username   = 1;  // e.g. "alice@example.com"
+  string password   = 2;
+  string totp_code  = 3;  // 2FA-код (TOTP)
 }
 
-message TxRequest {
-    string user_id = 1;
-    double amount  = 2;
+message LoginResponse {
+  string access_jwt      = 1;  // JWT (HS256) для вызовов TransactionService
+  string refresh_token   = 2;  // При желании
+  uint64 expires_at_unix = 3;  // Время жизни JWT
 }
 
-message TxResponse {
-    bool   success = 1;
-    string message = 2;
+message RefreshRequest {
+  string refresh_token   = 1;
 }
 
-service Transaction {
-    rpc Process(TxRequest) returns (TxResponse);
+message RefreshResponse {
+  string access_jwt      = 1;
+  string refresh_token   = 2;
+  uint64 expires_at_unix = 3;
+}
+
+// ---------------------------------------------------------------------
+// 2. TRANSACTION SERVICE (ProcessTx + GetTxStatus)
+//    Добавлены поля для хеша (SHA-256) и подписи (RSA).
+// ---------------------------------------------------------------------
+service TransactionService {
+  // В метаданных gRPC: "authorization: Bearer <access_jwt>"
+  rpc ProcessTx(ProcessTxRequest) returns (ProcessTxResponse) {}
+  rpc GetTxStatus(TxStatusRequest) returns (TxStatusResponse) {}
+}
+
+message ProcessTxRequest {
+  string user_id        = 1;   // ID пользователя (должен совпадать с JWT "sub")
+  double amount         = 2;   // Сумма транзакции, например 4.99
+  string currency       = 3;   // Валюта, например "USD"
+  uint64 timestamp_unix = 4;   // Время отправки от клиента (Unix time, сек)
+  uint64 nonce          = 5;   // Случайный uint64 (защита от повторов)
+  bytes  signature      = 6;   // RSA-подпись над sha256(user_id|amount|currency|timestamp|nonce)
+}
+
+message ProcessTxResponse {
+  bool   success          = 1;   // true, если принята
+  string message          = 2;   // текстовый ответ (например, "Invalid signature")
+  string transaction_id   = 3;   // уникальный ID (UUIDv4)
+  bytes  tx_hash          = 4;   // SHA-256 хеш тех же полей (32 байта)
+  uint64 server_time_unix = 5;   // Время сервера, когда принята
+}
+
+message TxStatusRequest {
+  string user_id        = 1;
+  string transaction_id = 2;
+}
+
+message TxStatusResponse {
+  bool   found          = 1;
+  bool   success        = 2;
+  string message        = 3;
+  double amount         = 4;
+  string currency       = 5;
+  uint64 timestamp_unix = 6;
+  bytes  tx_hash        = 7;
 }

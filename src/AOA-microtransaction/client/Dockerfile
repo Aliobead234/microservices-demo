@@ -1,16 +1,19 @@
-FROM golang:alpine
-WORKDIR /grpc/
+# client/Dockerfile
+FROM golang:1.21-alpine AS builder
+WORKDIR /app
 
-COPY go.mod go.sum /grpc/
-COPY functions /grpc/functions/
+COPY go.mod go.sum ./
+RUN go mod download
 
-COPY client /grpc/client/
-RUN go build -v -o /grpc/main /grpc/client/
+COPY . .
+RUN go build -o /client main.go
 
+FROM alpine:3.18
+RUN apk add --no-cache ca-certificates
+WORKDIR /root/
+COPY --from=builder /client .
+# Копируем сертификаты CA и приватный ключ клиента
+#COPY ../certs/ca.crt /certs/ca.crt
+COPY ../certs/client.key /certs/client.key
 
-FROM alpine:latest
-ENV ADDR grpc-server:50501
-
-COPY --from=0 /grpc/main .
-ENTRYPOINT ["./main"]
-CMD ["--echotype=all", "world", "5 world", "000", "111", "222"]
+ENTRYPOINT ["./client"]

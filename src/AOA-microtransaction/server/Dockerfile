@@ -1,15 +1,21 @@
-FROM golang:alpine
-WORKDIR /grpc/
+# server/Dockerfile
+FROM golang:1.21-alpine AS builder
+WORKDIR /app
 
-COPY functions /grpc/functions/
-COPY server /grpc/server/
+COPY go.mod go.sum ./
+RUN go mod download
 
-COPY go.mod go.sum /grpc/
-RUN go build -v -o /grpc/main /grpc/server/
+COPY . .
+RUN go build -o /server main.go
 
+FROM alpine:3.18
+RUN apk add --no-cache ca-certificates
+WORKDIR /root/
+COPY --from=builder /server .
+# Копируем TLS-сертификаты в контейнер
+#COPY ../certs/server.crt /certs/server.crt
+COPY ../certs/server.key /certs/server.key
 
-FROM alpine:latest
-
-COPY --from=0 /grpc/main .
-ENV PORT 50501
-ENTRYPOINT ["./main"]
+EXPOSE 50051
+ENTRYPOINT ["./server"]
+CMD ["-cert", "/certs/server.crt", "-key", "/certs/server.key"]

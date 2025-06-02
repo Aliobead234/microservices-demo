@@ -1,4 +1,4 @@
-module github.com/Aliobead234/AOAmicroservice
+module github.com/Aliobead234/microservices-demo/src/AOAmicroservice
 
 go 1.18
 
